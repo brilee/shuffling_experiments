@@ -74,6 +74,32 @@ def make_hilbert_png(ordering, png_filename):
     img.save(png_filename)
     return png_filename
 
+def make_hilbert_curve_svg(hilbert_order, svg_filename):
+    '''Takes an iterable of 2-tuples and plots the hilbert curve.'''
+    curve = list(hilbert_curve(hilbert_order))
+    canvas_size = 272
+    padding = 8
+    image_size = canvas_size - 2 * padding
+    svg = [
+        '<?xml version="1.0" encoding="UTF-8" ?>',
+        '<svg height="{canvas_size}" width="{canvas_size}" xmlns="http://www.w3.org/2000/svg" version="1.1">'.format(canvas_size=canvas_size)]
+    curve_size = 2 ** log_4(len(curve))
+    for (y1, x1), (y2, x2) in zip(curve[:-1], curve[1:]):
+        x1 *= image_size / curve_size
+        x2 *= image_size / curve_size
+        y1 *= image_size / curve_size
+        y2 *= image_size / curve_size
+        x1 += padding
+        x2 += padding
+        y1 += padding
+        y2 += padding
+        svg.append('<line x1="{x1}" y1="{y1}" x2="{x2}" y2="{y2}" style="stroke:rgb(255,0,0);stroke-width:2" />'.format(
+            x1=x1, x2=x2, y1=y1, y2=y2))
+    svg.append('</svg>')
+    completed_svg = '\n'.join(svg)
+    with open(svg_filename, 'w') as f:
+        f.write(completed_svg)
+
 def shard_list(numbers, num_shards, jitter=False):
     if jitter:
         # Jitter is hardcoded to range from 0.75~1.25x the desired shard_list size
@@ -225,6 +251,9 @@ def twice_shuffled(num_shards, parallel_reads):
         subshards = shard_list(shard, num_shards)
         shuffled_shards.append(pseudoshuffle(subshards, buffer_size=buffer_size, parallel_reads=parallel_reads))
     return pseudoshuffle(shuffled_shards, buffer_size=buffer_size, parallel_reads=parallel_reads)
+
+for i in range(1, 6):
+    make_hilbert_curve_svg(i, os.path.join(OUTPUT_DIR, 'hilbert_curve_{}.svg'.format(i)))
 
 create_img_table(basic_scaling, (1024, 4096, 16384), (0, 0.01, 0.1, 0.5, 1))
 create_img_table(chained_scaling, (0, 0.01, 0.1, 0.5), (1, 2, 4))
