@@ -133,7 +133,7 @@ def pseudoshuffle(
 
     for f in files:
         f.close()
-    return recovered_data
+    return list(recovered_data)
 
 def composite_images(rows, columns, image_names):
     '''Takes a list of list of filenames and outputs HTML table of <img>.'''
@@ -145,7 +145,10 @@ def composite_images(rows, columns, image_names):
         html_parts.append('<tr>')
         html_parts.append('<th>{}</th>'.format(row_name))
         for img in img_row:
-            html_parts.append('<td><img src="{}"></td>'.format(img))
+            if img is None:
+                html_parts.append('<td></td>')
+            else:
+                html_parts.append('<td><img src="{}"></td>'.format(img))
         html_parts.append('</tr>')
     return '\n'.join(html_parts)
 
@@ -159,7 +162,10 @@ def create_img_table(test, dimension1, dimension2):
         for param2 in dimension2:
             img_name = '{}_{}_{}.png'.format(test.__name__, param1, param2)
             shuffled_list = test(param1, param2)
-            make_hilbert_png(shuffled_list, os.path.join(OUTPUT_DIR, img_name))
+            if not shuffled_list:
+                img_name = None
+            else:
+                make_hilbert_png(shuffled_list, os.path.join(OUTPUT_DIR, img_name))
             img_row.append(img_name)
         images.append(img_row)
     composite_html = composite_images(dimension1, dimension2, images)
