@@ -102,7 +102,10 @@ def make_hilbert_curve_svg(hilbert_order, svg_filename):
 
 def shard_list(numbers, num_shards, jitter=False):
     if jitter:
-        # Jitter is hardcoded to range from 0.75~1.25x the desired shard_list size
+        # Deterministic sharding for fair comparisons
+        random.seed(17)
+        # Minimum shard size is 0.75x the desired shard_list size. Remaining elements
+        # are distributed semi-randomly between the shards.
         set_aside = int(len(numbers) * 0.75)
         remaining = len(numbers) - set_aside
         splits = sorted(random.randint(0, remaining) for i in range(num_shards - 1))
@@ -135,12 +138,11 @@ def pseudoshuffle(
     shards, buffer_size, num_chained_buffers=1,
     parallel_reads=1):
     files = write_shards(shards)
-    # Seed here because we want deterministic shuffling of file order
-    # so that different runs can be compared fairly.
+    # Deterministic shuffling of file order for fair comparisons.
     random.seed(17)
     random.shuffle(files)
     # the file objects have to be in the same scope as session.run()
-    # because otherwise, garbage collection deletes the tempfiles.
+    # because otherwise, garbage collection can delete the tempfiles.
     filenames = [f.name for f in files]
     filename_dataset = tf.data.Dataset.from_tensor_slices(filenames)
     dataset = filename_dataset.interleave(
