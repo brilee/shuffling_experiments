@@ -69,7 +69,7 @@ def make_hilbert_png(ordering, png_filename):
     image_array[:, :, 2] = VALUE
     image_array = image_array.astype(np.uint8)
     img = Image.fromarray(image_array, 'HSV')
-    img = img.resize((256, 256))
+    img = img.resize((128, 128))
     img = img.convert('RGB')
     img.save(png_filename)
     return png_filename
@@ -77,9 +77,10 @@ def make_hilbert_png(ordering, png_filename):
 def make_hilbert_curve_svg(hilbert_order, svg_filename):
     '''Takes an iterable of 2-tuples and plots the hilbert curve.'''
     curve = list(hilbert_curve(hilbert_order))
-    canvas_size = 272
+    image_size = 128
     padding = 8
-    image_size = canvas_size - 2 * padding
+    canvas_size = image_size + 2 * padding
+    cell_center = image_size / (2 ** hilbert_order) / 2
     svg = [
         '<?xml version="1.0" encoding="UTF-8" ?>',
         '<svg height="{canvas_size}" width="{canvas_size}" xmlns="http://www.w3.org/2000/svg" version="1.1">'.format(canvas_size=canvas_size)]
@@ -89,10 +90,10 @@ def make_hilbert_curve_svg(hilbert_order, svg_filename):
         x2 *= image_size / curve_size
         y1 *= image_size / curve_size
         y2 *= image_size / curve_size
-        x1 += padding
-        x2 += padding
-        y1 += padding
-        y2 += padding
+        x1 += padding + cell_center
+        x2 += padding + cell_center
+        y1 += padding + cell_center
+        y2 += padding + cell_center
         svg.append('<line x1="{x1}" y1="{y1}" x2="{x2}" y2="{y2}" style="stroke:rgb(255,0,0);stroke-width:2" />'.format(
             x1=x1, x2=x2, y1=y1, y2=y2))
     svg.append('</svg>')
