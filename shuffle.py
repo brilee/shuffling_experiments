@@ -178,6 +178,7 @@ def composite_images(rows, columns, image_names):
             else:
                 html_parts.append('<td><img src="{}"></td>'.format(img))
         html_parts.append('</tr>')
+    html_parts.append('</table>')
     return '\n'.join(html_parts)
 
 def create_img_table(test, dimension1, dimension2):
@@ -263,7 +264,3 @@ create_img_table(sharded_scaling, (0, 0.01, 0.1, 0.5), (1, 2, 4, 8))
 create_img_table(parallel_read_scaling, (1, 2, 4, 8), (1, 2, 4, 8))
 create_img_table(parallel_read_scaling_jittered, (1, 2, 4, 8), (1, 2, 4, 8))
 create_img_table(twice_shuffled, (1, 2, 4, 8), (1, 2, 4, 8))
-
-
-
-
