@@ -1,3 +1,2 @@
-numpy==1.14.2
-Pillow==5.0.0
-tensorflow>=1.6
+Pillow
+tensorflow>=2.2

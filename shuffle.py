@@ -2,11 +2,12 @@ import functools
 import os
 import tempfile
 import random
-import tensorflow as tf
 import time
+from typing import List
 
 import numpy as np
 from PIL import Image
+import tensorflow as tf
 
 SATURATION = 255
 VALUE = 255
@@ -69,7 +70,7 @@ def make_hilbert_png(ordering, png_filename):
     image_array[:, :, 2] = VALUE
     image_array = image_array.astype(np.uint8)
     img = Image.fromarray(image_array, 'HSV')
-    img = img.resize((128, 128))
+    img = img.resize((128, 128), resample=Image.NEAREST)
     img = img.convert('RGB')
     img.save(png_filename)
     return png_filename
@@ -124,45 +125,24 @@ def shard_list(numbers, num_shards, jitter=False):
         shards = [numbers[i*shard_size:(i+1)*shard_size] for i in range(num_shards)]
     return shards
 
-def write_shards(shards):
-    # This is really hacky. TensorFlow keeps on wanting to infer shapes of
-    # the shards. But when the shards are of different shapes because of jitter,
-    # TensorFlow barfs up shape mismatch errors. So we write files so that TensorFlow
-    # can't make any assumptions about the size of each shard.
-    files = [tempfile.NamedTemporaryFile() for i in range(len(shards))]
-    for file, shard in zip(files, shards):
-        file.write('\n'.join(map(str, shard)).encode('ascii'))
-        file.flush()
-    return files
 
 def pseudoshuffle(
-    shards, buffer_size, num_chained_buffers=1,
+    shards: List[List[int]], buffer_size: int, num_chained_buffers: int = 1,
     parallel_reads=1):
-    files = write_shards(shards)
     # Deterministic shuffling of file order for fair comparisons.
     random.seed(17)
-    random.shuffle(files)
-    # the file objects have to be in the same scope as session.run()
-    # because otherwise, garbage collection can delete the tempfiles.
-    filenames = [f.name for f in files]
-    filename_dataset = tf.data.Dataset.from_tensor_slices(filenames)
-    dataset = filename_dataset.interleave(
-        lambda x: tf.data.TextLineDataset(x).map(
-            functools.partial(tf.string_to_number, out_type=tf.int32)),
+    random.shuffle(shards)
+    shards = [tf.data.Dataset.from_tensor_slices(s) for s in shards]
+    shard_dataset = tf.data.Dataset.from_tensor_slices(shards)
+    dataset = shard_dataset.interleave(
+        lambda x: x,
         cycle_length=parallel_reads, block_length=1)
 
     for i in range(num_chained_buffers):
         dataset = dataset.shuffle(buffer_size=buffer_size)
 
-    dataset = dataset.batch(sum(map(len, shards)))
+    return list(dataset)
 
-    iterator = dataset.make_one_shot_iterator().get_next()
-    with tf.Session() as sess:
-        recovered_data = sess.run(iterator)
-
-    for f in files:
-        f.close()
-    return list(recovered_data)
 
 def composite_images(rows, columns, image_names):
     '''Takes a list of list of filenames and outputs HTML table of <img>.'''
